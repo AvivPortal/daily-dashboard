@@ -2,7 +2,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Edit2, Trash2, ChevronRight } from 'lucide-react'
 import type { Task, TaskStatus } from '../../types'
-import { formatDate, isOverdue } from '../../utils/format'
+import { formatDateTime, isOverdue } from '../../utils/format'
 
 const PRIORITY_COLOR: Record<string, string> = {
   HIGH: 'bg-red-100 text-red-700',
@@ -79,7 +79,7 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusChange }: Pro
         ))}
         {task.dueDate && (
           <span className={`text-xs ${overdue ? 'text-red-500 font-medium' : 'text-slate-400'} mr-auto`}>
-            {overdue ? '⚠ ' : ''}{formatDate(task.dueDate)}
+            {overdue ? '⚠ ' : ''}{formatDateTime(task.dueDate)}
           </span>
         )}
       </div>

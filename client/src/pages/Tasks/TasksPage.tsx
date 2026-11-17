@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, Bell } from 'lucide-react'
+import { toDateTimeLocal } from '../../utils/format'
 import toast from 'react-hot-toast'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -64,7 +65,7 @@ export default function TasksPage() {
       title: t.title,
       description: t.description || '',
       priority: t.priority,
-      dueDate: t.dueDate ? t.dueDate.split('T')[0] : '',
+      dueDate: t.dueDate ? toDateTimeLocal(t.dueDate) : '',
       tags: t.tags.join(', '),
       reminderEnabled: t.reminderEnabled,
       reminderOffsets: t.reminderOffsets,
@@ -216,8 +217,8 @@ export default function TasksPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">תאריך יעד</label>
-              <input type="date" value={form.dueDate} onChange={(e) => setForm((p) => ({ ...p, dueDate: e.target.value }))} className="input" />
+              <label className="text-xs text-slate-500 mb-1 block">תאריך ושעה</label>
+              <input type="datetime-local" value={form.dueDate} onChange={(e) => setForm((p) => ({ ...p, dueDate: e.target.value }))} className="input" />
             </div>
           </div>
           <div>
