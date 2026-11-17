@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-cream font-sans text-slate-800 antialiased;
+  }
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-card border border-white/60;
+  }
+  .glass-card-dark {
+    @apply bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20;
+  }
+  .btn-primary {
+    @apply bg-sage-500 hover:bg-sage-700 text-white font-medium px-4 py-2 rounded-xl transition-colors;
+  }
+  .btn-ghost {
+    @apply hover:bg-slate-100 text-slate-600 font-medium px-4 py-2 rounded-xl transition-colors;
+  }
+  .input {
+    @apply w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sage-300 transition;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+}
