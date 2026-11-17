@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Plus, Trash2, RefreshCw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Plus, Trash2, RefreshCw, Check, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -13,16 +13,23 @@ import PageHeader from '../../components/ui/PageHeader'
 import { formatCurrency, formatDate } from '../../utils/format'
 import { motion } from 'framer-motion'
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   'שכר דירה', 'גן / חינוך', 'מזון', 'מסעדות', 'תחבורה',
   'בריאות', 'בידור', 'קניות', 'חשבונות', 'אחר',
 ]
+
+const loadCustomCategories = (): string[] => {
+  try { return JSON.parse(localStorage.getItem('budget_custom_categories') || '[]') } catch { return [] }
+}
+const saveCustomCategories = (cats: string[]) => {
+  try { localStorage.setItem('budget_custom_categories', JSON.stringify(cats)) } catch { /* noop */ }
+}
 
 const MONTH_NAMES = ['ינו', 'פבר', 'מרץ', 'אפר', 'מאי', 'יונ', 'יול', 'אוג', 'ספט', 'אוק', 'נוב', 'דצמ']
 
 const PIE_COLORS = ['#84a98c', '#6b9e78', '#52917e', '#3a8484', '#5b6fa8', '#8f6bab', '#c06b6b', '#c8955c', '#c8c45c', '#7d7d7d']
 
-const emptyForm = { amount: '', category: CATEGORIES[0], description: '', date: new Date().toISOString().split('T')[0], isRecurring: false }
+const emptyForm = { amount: '', category: DEFAULT_CATEGORIES[0], description: '', date: new Date().toISOString().split('T')[0], isRecurring: false }
 
 export default function BudgetPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -30,6 +37,10 @@ export default function BudgetPage() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [loading, setLoading] = useState(true)
+  const [customCategories, setCustomCategories] = useState<string[]>(loadCustomCategories)
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [newCatInput, setNewCatInput] = useState('')
+  const newCatRef = useRef<HTMLInputElement>(null)
   const now = new Date()
 
   const load = async () => {
@@ -63,6 +74,17 @@ export default function BudgetPage() {
     } catch {
       toast.error('שגיאה בהוספת הוצאה')
     }
+  }
+
+  const confirmNewCategory = () => {
+    const name = newCatInput.trim()
+    if (!name) return
+    const updated = [...customCategories, name]
+    setCustomCategories(updated)
+    saveCustomCategories(updated)
+    setForm((p) => ({ ...p, category: name }))
+    setAddingCategory(false)
+    setNewCatInput('')
   }
 
   const handleDelete = async (id: string) => {
@@ -195,7 +217,7 @@ export default function BudgetPage() {
       )}
 
       {/* Add Expense Modal */}
-      <Modal open={open} onClose={() => setOpen(false)} title="הוספת הוצאה">
+      <Modal open={open} onClose={() => { setOpen(false); setAddingCategory(false); setNewCatInput('') }} title="הוספת הוצאה">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-xs text-slate-500 mb-1 block">סכום</label>
@@ -212,13 +234,41 @@ export default function BudgetPage() {
           </div>
           <div>
             <label className="text-xs text-slate-500 mb-1 block">קטגוריה</label>
-            <select
-              value={form.category}
-              onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-              className="input"
-            >
-              {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-            </select>
+            {!addingCategory ? (
+              <select
+                value={form.category}
+                onChange={(e) => {
+                  if (e.target.value === '__new__') {
+                    setAddingCategory(true)
+                    setTimeout(() => newCatRef.current?.focus(), 50)
+                  } else {
+                    setForm((p) => ({ ...p, category: e.target.value }))
+                  }
+                }}
+                className="input"
+              >
+                {[...DEFAULT_CATEGORIES, ...customCategories].map((c) => <option key={c}>{c}</option>)}
+                <option value="__new__">+ קטגוריה חדשה...</option>
+              </select>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  ref={newCatRef}
+                  type="text"
+                  value={newCatInput}
+                  onChange={(e) => setNewCatInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); confirmNewCategory() } if (e.key === 'Escape') { setAddingCategory(false); setNewCatInput('') } }}
+                  placeholder="שם קטגוריה חדשה"
+                  className="input flex-1"
+                />
+                <button type="button" onClick={confirmNewCategory} className="p-2 rounded-lg bg-sage-500 text-white hover:bg-sage-600 transition-colors">
+                  <Check size={16} />
+                </button>
+                <button type="button" onClick={() => { setAddingCategory(false); setNewCatInput('') }} className="p-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs text-slate-500 mb-1 block">תיאור (אופציונלי)</label>
