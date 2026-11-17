@@ -17,6 +17,15 @@ export const toDateTimeLocal = (date: string | Date) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+// datetime-local string ("2026-11-18T01:14") has no timezone — using multi-arg
+// constructor guarantees it's treated as local time in ALL browsers
+export const dateTimeLocalToISO = (localStr: string): string => {
+  const [datePart, timePart] = localStr.split('T')
+  const [year, month, day] = datePart.split('-').map(Number)
+  const [hours, minutes] = timePart.split(':').map(Number)
+  return new Date(year, month - 1, day, hours, minutes).toISOString()
+}
+
 export const isOverdue = (dueDate?: string | null) =>
   dueDate ? new Date(dueDate) < new Date() : false
 

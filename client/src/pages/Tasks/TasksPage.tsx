@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, Bell } from 'lucide-react'
-import { toDateTimeLocal } from '../../utils/format'
+import { toDateTimeLocal, dateTimeLocalToISO } from '../../utils/format'
 import toast from 'react-hot-toast'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -79,7 +79,7 @@ export default function TasksPage() {
       title: form.title,
       description: form.description || undefined,
       priority: form.priority,
-      dueDate: form.dueDate ? new Date(form.dueDate).toISOString() : undefined,
+      dueDate: form.dueDate ? dateTimeLocalToISO(form.dueDate) : undefined,
       tags: form.tags ? form.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
       reminderEnabled: form.reminderEnabled,
       reminderOffsets: form.reminderOffsets,
