@@ -79,7 +79,7 @@ export default function TasksPage() {
       title: form.title,
       description: form.description || undefined,
       priority: form.priority,
-      dueDate: form.dueDate || undefined,
+      dueDate: form.dueDate ? new Date(form.dueDate).toISOString() : undefined,
       tags: form.tags ? form.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
       reminderEnabled: form.reminderEnabled,
       reminderOffsets: form.reminderOffsets,
