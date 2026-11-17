@@ -41,7 +41,7 @@ export const createTask = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const updateTask = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params
+    const id = req.params.id as string
     const existing = await prisma.task.findFirst({ where: { id, userId: req.userId } })
     if (!existing) throw new ApiError(404, 'Task not found')
 
@@ -65,7 +65,7 @@ export const updateTask = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const deleteTask = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params
+    const id = req.params.id as string
     const existing = await prisma.task.findFirst({ where: { id, userId: req.userId } })
     if (!existing) throw new ApiError(404, 'Task not found')
 

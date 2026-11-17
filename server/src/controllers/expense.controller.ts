@@ -47,7 +47,7 @@ export const createExpense = async (req: AuthRequest, res: Response, next: NextF
 
 export const updateExpense = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params
+    const id = req.params.id as string
     const existing = await prisma.expense.findFirst({ where: { id, userId: req.userId } })
     if (!existing) throw new ApiError(404, 'Expense not found')
 
@@ -69,7 +69,7 @@ export const updateExpense = async (req: AuthRequest, res: Response, next: NextF
 
 export const deleteExpense = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params
+    const id = req.params.id as string
     const existing = await prisma.expense.findFirst({ where: { id, userId: req.userId } })
     if (!existing) throw new ApiError(404, 'Expense not found')
 

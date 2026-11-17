@@ -40,7 +40,7 @@ export const createJob = async (req: AuthRequest, res: Response, next: NextFunct
 
 export const updateJob = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params
+    const id = req.params.id as string
     const existing = await prisma.jobApplication.findFirst({ where: { id, userId: req.userId } })
     if (!existing) throw new ApiError(404, 'Job application not found')
 
@@ -63,7 +63,7 @@ export const updateJob = async (req: AuthRequest, res: Response, next: NextFunct
 
 export const deleteJob = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params
+    const id = req.params.id as string
     const existing = await prisma.jobApplication.findFirst({ where: { id, userId: req.userId } })
     if (!existing) throw new ApiError(404, 'Job application not found')
 

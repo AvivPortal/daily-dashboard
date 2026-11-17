@@ -48,7 +48,7 @@ export const createNote = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const updateNote = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params
+    const id = req.params.id as string
     const existing = await prisma.note.findFirst({ where: { id, userId: req.userId } })
     if (!existing) throw new ApiError(404, 'Note not found')
 
@@ -70,7 +70,7 @@ export const updateNote = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const deleteNote = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params
+    const id = req.params.id as string
     const existing = await prisma.note.findFirst({ where: { id, userId: req.userId } })
     if (!existing) throw new ApiError(404, 'Note not found')
 

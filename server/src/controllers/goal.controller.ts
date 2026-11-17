@@ -39,7 +39,7 @@ export const createGoal = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const updateGoal = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params
+    const id = req.params.id as string
     const existing = await prisma.goal.findFirst({ where: { id, userId: req.userId } })
     if (!existing) throw new ApiError(404, 'Goal not found')
 
@@ -62,7 +62,7 @@ export const updateGoal = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const deleteGoal = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params
+    const id = req.params.id as string
     const existing = await prisma.goal.findFirst({ where: { id, userId: req.userId } })
     if (!existing) throw new ApiError(404, 'Goal not found')
 

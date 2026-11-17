@@ -46,7 +46,7 @@ export const createHabit = async (req: AuthRequest, res: Response, next: NextFun
 
 export const updateHabit = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params
+    const id = req.params.id as string
     const existing = await prisma.habit.findFirst({ where: { id, userId: req.userId } })
     if (!existing) throw new ApiError(404, 'Habit not found')
 
@@ -69,7 +69,7 @@ export const updateHabit = async (req: AuthRequest, res: Response, next: NextFun
 
 export const deleteHabit = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params
+    const id = req.params.id as string
     const existing = await prisma.habit.findFirst({ where: { id, userId: req.userId } })
     if (!existing) throw new ApiError(404, 'Habit not found')
 
@@ -82,7 +82,7 @@ export const deleteHabit = async (req: AuthRequest, res: Response, next: NextFun
 
 export const toggleHabitLog = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params
+    const id = req.params.id as string
     const existing = await prisma.habit.findFirst({ where: { id, userId: req.userId } })
     if (!existing) throw new ApiError(404, 'Habit not found')
 
