@@ -58,6 +58,8 @@ export interface Task {
   dueDate?: string
   tags: string[]
   position: number
+  reminderEnabled: boolean
+  reminderOffsets: number[]
   createdAt: string
   updatedAt: string
 }

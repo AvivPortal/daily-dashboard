@@ -19,7 +19,7 @@ export const getTasks = async (req: AuthRequest, res: Response, next: NextFuncti
 
 export const createTask = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { title, description, status, priority, dueDate, tags } = req.body
+    const { title, description, status, priority, dueDate, tags, reminderEnabled, reminderOffsets } = req.body
     if (!title) throw new ApiError(400, 'Title is required')
 
     const task = await prisma.task.create({
@@ -31,6 +31,8 @@ export const createTask = async (req: AuthRequest, res: Response, next: NextFunc
         priority: (priority as Priority) || 'MEDIUM',
         dueDate: dueDate ? new Date(dueDate) : null,
         tags: tags || [],
+        reminderEnabled: reminderEnabled ?? false,
+        reminderOffsets: reminderOffsets || [],
       },
     })
     res.status(201).json(task)
@@ -55,6 +57,8 @@ export const updateTask = async (req: AuthRequest, res: Response, next: NextFunc
         dueDate: req.body.dueDate ? new Date(req.body.dueDate) : req.body.dueDate === null ? null : undefined,
         tags: req.body.tags,
         position: req.body.position,
+        reminderEnabled: req.body.reminderEnabled,
+        reminderOffsets: req.body.reminderOffsets,
       },
     })
     res.json(updated)

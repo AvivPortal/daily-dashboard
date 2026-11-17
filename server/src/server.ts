@@ -11,7 +11,11 @@ import habitRoutes from './routes/habit.routes'
 import noteRoutes from './routes/note.routes'
 import goalRoutes from './routes/goal.routes'
 import dashboardRoutes from './routes/dashboard.routes'
+import telegramRoutes from './routes/telegram.routes'
 import { errorHandler } from './middleware/error.middleware'
+import { startReminderCron } from './services/reminder.service'
+import { startTelegramPolling } from './services/telegram.service'
+import { handleTelegramStart } from './controllers/telegram.controller'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -31,6 +35,7 @@ app.use('/api/habits', habitRoutes)
 app.use('/api/notes', noteRoutes)
 app.use('/api/goals', goalRoutes)
 app.use('/api/dashboard', dashboardRoutes)
+app.use('/api/telegram', telegramRoutes)
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
 
@@ -38,4 +43,6 @@ app.use(errorHandler)
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`)
+  startReminderCron()
+  startTelegramPolling(handleTelegramStart)
 })
