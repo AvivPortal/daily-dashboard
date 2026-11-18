@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus, Trash2, RefreshCw, Check, X } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, Check, X, Edit2, Settings } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -18,29 +18,36 @@ const DEFAULT_CATEGORIES = [
   'בריאות', 'בידור', 'קניות', 'חשבונות', 'אחר',
 ]
 
-const loadCustomCategories = (): string[] => {
-  try { return JSON.parse(localStorage.getItem('budget_custom_categories') || '[]') } catch { return [] }
-}
-const saveCustomCategories = (cats: string[]) => {
-  try { localStorage.setItem('budget_custom_categories', JSON.stringify(cats)) } catch { /* noop */ }
-}
-
 const MONTH_NAMES = ['ינו', 'פבר', 'מרץ', 'אפר', 'מאי', 'יונ', 'יול', 'אוג', 'ספט', 'אוק', 'נוב', 'דצמ']
-
 const PIE_COLORS = ['#84a98c', '#6b9e78', '#52917e', '#3a8484', '#5b6fa8', '#8f6bab', '#c06b6b', '#c8955c', '#c8c45c', '#7d7d7d']
 
-const emptyForm = { amount: '', category: DEFAULT_CATEGORIES[0], description: '', date: new Date().toISOString().split('T')[0], isRecurring: false }
+const loadCategories = (): string[] => {
+  try { return JSON.parse(localStorage.getItem('budget_categories') || 'null') ?? [...DEFAULT_CATEGORIES] } catch { return [...DEFAULT_CATEGORIES] }
+}
+const saveCategories = (cats: string[]) => {
+  try { localStorage.setItem('budget_categories', JSON.stringify(cats)) } catch { /* noop */ }
+}
+
+const emptyForm = { amount: '', description: '', date: new Date().toISOString().split('T')[0], isRecurring: false }
 
 export default function BudgetPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [summary, setSummary] = useState<ExpenseSummary | null>(null)
   const [open, setOpen] = useState(false)
+  const [editExpense, setEditExpense] = useState<Expense | null>(null)
   const [form, setForm] = useState(emptyForm)
+  const [category, setCategory] = useState(DEFAULT_CATEGORIES[0])
   const [loading, setLoading] = useState(true)
-  const [customCategories, setCustomCategories] = useState<string[]>(loadCustomCategories)
+
+  const [categories, setCategories] = useState<string[]>(loadCategories)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCatInput, setNewCatInput] = useState('')
   const newCatRef = useRef<HTMLInputElement>(null)
+
+  const [managingCategories, setManagingCategories] = useState(false)
+  const [renamingCat, setRenamingCat] = useState<string | null>(null)
+  const [renameInput, setRenameInput] = useState('')
+
   const now = new Date()
 
   const load = async () => {
@@ -56,35 +63,58 @@ export default function BudgetPage() {
 
   useEffect(() => { load() }, [])
 
+  const openCreate = () => {
+    setEditExpense(null)
+    setForm(emptyForm)
+    setCategory(categories[0] ?? DEFAULT_CATEGORIES[0])
+    setAddingCategory(false)
+    setManagingCategories(false)
+    setOpen(true)
+  }
+
+  const openEdit = (exp: Expense) => {
+    setEditExpense(exp)
+    setForm({ amount: String(exp.amount), description: exp.description ?? '', date: exp.date.split('T')[0], isRecurring: exp.isRecurring })
+    setCategory(exp.category)
+    setAddingCategory(false)
+    setManagingCategories(false)
+    setOpen(true)
+  }
+
+  const closeModal = () => {
+    setOpen(false)
+    setAddingCategory(false)
+    setNewCatInput('')
+    setManagingCategories(false)
+    setRenamingCat(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const exp = await expenseService.create({
+      const payload = {
         amount: parseFloat(form.amount),
-        category: form.category,
+        category,
         description: form.description || undefined,
         date: form.date,
         isRecurring: form.isRecurring,
-      })
-      setExpenses((p) => [exp, ...p])
-      setSummary((s) => s ? { ...s, totalThisMonth: s.totalThisMonth + exp.amount } : s)
-      setOpen(false)
-      setForm(emptyForm)
-      toast.success('הוצאה נוספה')
+      }
+      if (editExpense) {
+        const updated = await expenseService.update(editExpense.id, payload)
+        setExpenses((p) => p.map((x) => x.id === updated.id ? updated : x))
+        const diff = updated.amount - editExpense.amount
+        setSummary((s) => s ? { ...s, totalThisMonth: s.totalThisMonth + diff } : s)
+        toast.success('הוצאה עודכנה')
+      } else {
+        const exp = await expenseService.create(payload)
+        setExpenses((p) => [exp, ...p])
+        setSummary((s) => s ? { ...s, totalThisMonth: s.totalThisMonth + exp.amount } : s)
+        toast.success('הוצאה נוספה')
+      }
+      closeModal()
     } catch {
-      toast.error('שגיאה בהוספת הוצאה')
+      toast.error(editExpense ? 'שגיאה בעדכון הוצאה' : 'שגיאה בהוספת הוצאה')
     }
-  }
-
-  const confirmNewCategory = () => {
-    const name = newCatInput.trim()
-    if (!name) return
-    const updated = [...customCategories, name]
-    setCustomCategories(updated)
-    saveCustomCategories(updated)
-    setForm((p) => ({ ...p, category: name }))
-    setAddingCategory(false)
-    setNewCatInput('')
   }
 
   const handleDelete = async (id: string) => {
@@ -93,6 +123,40 @@ export default function BudgetPage() {
     setExpenses((p) => p.filter((e) => e.id !== id))
     if (exp) setSummary((s) => s ? { ...s, totalThisMonth: s.totalThisMonth - exp.amount } : s)
     toast.success('הוצאה נמחקה')
+  }
+
+  const confirmNewCategory = () => {
+    const name = newCatInput.trim()
+    if (!name || categories.includes(name)) return
+    const updated = [...categories, name]
+    setCategories(updated)
+    saveCategories(updated)
+    setCategory(name)
+    setAddingCategory(false)
+    setNewCatInput('')
+  }
+
+  const deleteCategory = (cat: string) => {
+    const updated = categories.filter((c) => c !== cat)
+    setCategories(updated)
+    saveCategories(updated)
+    if (category === cat) setCategory(updated[0] ?? '')
+  }
+
+  const startRename = (cat: string) => {
+    setRenamingCat(cat)
+    setRenameInput(cat)
+  }
+
+  const confirmRename = () => {
+    if (!renamingCat) return
+    const name = renameInput.trim()
+    if (!name || (name !== renamingCat && categories.includes(name))) return
+    const updated = categories.map((c) => c === renamingCat ? name : c)
+    setCategories(updated)
+    saveCategories(updated)
+    if (category === renamingCat) setCategory(name)
+    setRenamingCat(null)
   }
 
   const barData = Array.from({ length: 12 }, (_, i) => ({
@@ -108,7 +172,7 @@ export default function BudgetPage() {
         title="תקציב והוצאות"
         subtitle={`${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`}
         action={
-          <button onClick={() => setOpen(true)} className="btn-primary flex items-center gap-2">
+          <button onClick={openCreate} className="btn-primary flex items-center gap-2">
             <Plus size={16} />
             הוצאה חדשה
           </button>
@@ -121,7 +185,6 @@ export default function BudgetPage() {
         </div>
       ) : (
         <>
-          {/* Summary */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card>
               <p className="text-xs text-slate-500 mb-1">סה"כ החודש</p>
@@ -140,7 +203,6 @@ export default function BudgetPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Bar Chart */}
             <Card>
               <h2 className="font-semibold text-slate-800 mb-4">הוצאות לפי חודש</h2>
               <ResponsiveContainer width="100%" height={200}>
@@ -153,7 +215,6 @@ export default function BudgetPage() {
               </ResponsiveContainer>
             </Card>
 
-            {/* Pie Chart */}
             {pieData.length > 0 && (
               <Card>
                 <h2 className="font-semibold text-slate-800 mb-4">פירוט לפי קטגוריה</h2>
@@ -171,7 +232,6 @@ export default function BudgetPage() {
             )}
           </div>
 
-          {/* Expenses Table */}
           <Card>
             <h2 className="font-semibold text-slate-800 mb-4">הוצאות החודש</h2>
             {expenses.length === 0 ? (
@@ -202,8 +262,16 @@ export default function BudgetPage() {
                       <p className="text-xs text-slate-400">{formatDate(exp.date)}</p>
                       <p className="text-sm font-semibold text-slate-800 w-20 text-left">{formatCurrency(exp.amount)}</p>
                       <button
+                        onClick={() => openEdit(exp)}
+                        className="text-slate-300 hover:text-sage-500 transition-colors"
+                        title="ערוך"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button
                         onClick={() => handleDelete(exp.id)}
                         className="text-slate-300 hover:text-red-400 transition-colors"
+                        title="מחק"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -216,8 +284,7 @@ export default function BudgetPage() {
         </>
       )}
 
-      {/* Add Expense Modal */}
-      <Modal open={open} onClose={() => { setOpen(false); setAddingCategory(false); setNewCatInput('') }} title="הוספת הוצאה">
+      <Modal open={open} onClose={closeModal} title={editExpense ? 'עריכת הוצאה' : 'הוספת הוצאה'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-xs text-slate-500 mb-1 block">סכום</label>
@@ -232,22 +299,76 @@ export default function BudgetPage() {
               required
             />
           </div>
+
           <div>
-            <label className="text-xs text-slate-500 mb-1 block">קטגוריה</label>
-            {!addingCategory ? (
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-slate-500">קטגוריה</label>
+              <button
+                type="button"
+                onClick={() => { setManagingCategories((v) => !v); setRenamingCat(null) }}
+                className={`p-1 rounded transition-colors ${managingCategories ? 'text-sage-600 bg-sage-50' : 'text-slate-400 hover:text-slate-600'}`}
+                title="ניהול קטגוריות"
+              >
+                <Settings size={13} />
+              </button>
+            </div>
+
+            {managingCategories ? (
+              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                {categories.map((cat) => (
+                  <div key={cat} className="flex items-center gap-2 px-3 py-2">
+                    {renamingCat === cat ? (
+                      <>
+                        <input
+                          autoFocus
+                          type="text"
+                          value={renameInput}
+                          onChange={(e) => setRenameInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); confirmRename() } if (e.key === 'Escape') setRenamingCat(null) }}
+                          className="input py-0.5 text-sm flex-1"
+                        />
+                        <button type="button" onClick={confirmRename} className="p-1 rounded bg-sage-500 text-white hover:bg-sage-600 transition-colors flex-shrink-0">
+                          <Check size={12} />
+                        </button>
+                        <button type="button" onClick={() => setRenamingCat(null)} className="p-1 rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors flex-shrink-0">
+                          <X size={12} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm text-slate-700 flex-1 truncate">{cat}</span>
+                        <button type="button" onClick={() => startRename(cat)} className="p-1 rounded text-slate-400 hover:text-sage-600 hover:bg-sage-50 transition-colors flex-shrink-0" title="שנה שם">
+                          <Edit2 size={12} />
+                        </button>
+                        <button type="button" onClick={() => deleteCategory(cat)} className="p-1 rounded text-slate-400 hover:text-red-400 hover:bg-red-50 transition-colors flex-shrink-0" title="מחק קטגוריה">
+                          <Trash2 size={12} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+                <div
+                  className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-sage-50 transition-colors"
+                  onClick={() => { setManagingCategories(false); setAddingCategory(true); setTimeout(() => newCatRef.current?.focus(), 50) }}
+                >
+                  <Plus size={12} className="text-sage-500" />
+                  <span className="text-sm text-sage-600">הוסף קטגוריה</span>
+                </div>
+              </div>
+            ) : !addingCategory ? (
               <select
-                value={form.category}
+                value={category}
                 onChange={(e) => {
                   if (e.target.value === '__new__') {
                     setAddingCategory(true)
                     setTimeout(() => newCatRef.current?.focus(), 50)
                   } else {
-                    setForm((p) => ({ ...p, category: e.target.value }))
+                    setCategory(e.target.value)
                   }
                 }}
                 className="input"
               >
-                {[...DEFAULT_CATEGORIES, ...customCategories].map((c) => <option key={c}>{c}</option>)}
+                {categories.map((c) => <option key={c}>{c}</option>)}
                 <option value="__new__">+ קטגוריה חדשה...</option>
               </select>
             ) : (
@@ -270,6 +391,7 @@ export default function BudgetPage() {
               </div>
             )}
           </div>
+
           <div>
             <label className="text-xs text-slate-500 mb-1 block">תיאור (אופציונלי)</label>
             <input
@@ -300,8 +422,8 @@ export default function BudgetPage() {
             <span className="text-sm text-slate-600">הוצאה קבועה (חוזרת)</span>
           </label>
           <div className="flex gap-2 pt-2">
-            <button type="submit" className="btn-primary flex-1">הוסף</button>
-            <button type="button" onClick={() => setOpen(false)} className="btn-ghost flex-1">ביטול</button>
+            <button type="submit" className="btn-primary flex-1">{editExpense ? 'עדכן' : 'הוסף'}</button>
+            <button type="button" onClick={closeModal} className="btn-ghost flex-1">ביטול</button>
           </div>
         </form>
       </Modal>
